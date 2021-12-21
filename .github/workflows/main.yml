@@ -41,3 +41,6 @@ jobs:
         python -m pip install shortuuid==0.4.2
         python -m pip install coveralls mock factory_boy
         python -m pip install freezegun==0.3.4
+
+    - name: Run tests
+      run: coverage run --source=umeboshi setup.py test
