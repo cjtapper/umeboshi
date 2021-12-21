@@ -8,7 +8,7 @@ on:
 
 jobs:
   tests:
-    name: Python ${{ matrix.python-version }}
+    name: Python ${{ matrix.python-version }} / Django ${{ matrix.django-version }}
     runs-on: ubuntu-20.04
 
     strategy:
@@ -29,7 +29,6 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
         cache: pip
-        cache-dependency-path: 'requirements/*.txt'
 
     - name: Install dependencies
       run: |
