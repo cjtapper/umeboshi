@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 django-umeboshi.models
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -12,31 +11,27 @@ after the computation is processed, the status of the computation.
 import hashlib
 
 from django.core.exceptions import ValidationError
-try:
-    from django.urls import reverse
-except ImportError:
-    from django.core.urlresolvers import reverse
-
 from django.db import models
+from django.urls import reverse
 from django.utils import timezone
 from django.utils.timezone import now, timedelta
-from django_light_enums import enum
+from django.utils.translation import gettext_lazy as _
 from django_extensions.db import fields
-from model_utils.managers import QueryManager
 
-from umeboshi.exceptions import RoutineRunException, RoutineRetryException
-from umeboshi.triggers import TriggerBehavior
+from umeboshi.exceptions import RoutineRetryException, RoutineRunException
 from umeboshi.serializer import serializer
+from umeboshi.triggers import TriggerBehavior
 
 
 class BaseModel(models.Model):
-
     class Meta:
         abstract = True
 
     def get_admin_url(self):
         def view_name_for_model(model):
-            return "admin:{}_{}_change".format(model._meta.app_label, model._meta.model_name)
+            return "admin:{}_{}_change".format(
+                model._meta.app_label, model._meta.model_name
+            )
 
         return reverse(view_name_for_model(self), args=(self.id,))
 
@@ -47,14 +42,14 @@ class BaseModel(models.Model):
         return self.__class__.objects.get(pk=self.pk)
 
 
-class EventManager(QueryManager):
-
+class EventManager(models.Manager):
     def get_routine_events(self, routine):
         """
         Return all Events of a given type that are currently scheduled.
         """
-        return self.filter(trigger_name=routine.trigger_name,
-                           status=Event.Status.CREATED).order_by('datetime_scheduled')
+        return self.filter(
+            trigger_name=routine.trigger_name, status=Event.Status.CREATED
+        ).order_by("datetime_scheduled")
 
 
 class Event(BaseModel):
@@ -66,10 +61,10 @@ class Event(BaseModel):
     """
 
     class Meta:
-        app_label = 'umeboshi'
+        app_label = "umeboshi"
         index_together = (
-            ('datetime_processed', 'datetime_scheduled'),
-            ('data_hash', 'datetime_processed', 'trigger_name')
+            ("datetime_processed", "datetime_scheduled"),
+            ("data_hash", "datetime_processed", "trigger_name"),
         )
 
     uuid = fields.ShortUUIDField(unique=True, editable=False)
@@ -84,28 +79,31 @@ class Event(BaseModel):
     datetime_scheduled = models.DateTimeField(db_index=True)
     datetime_processed = models.DateTimeField(db_index=True, null=True)
 
-    class Status(enum.Enum):
+    class Status(models.TextChoices):
 
         """
         Event statuses are stored with the object. An Event scheduled to be
         processed in the future is `CREATED`; after processing it can be in a
         variety of states.
         """
-        CREATED = 0
+
+        CREATED = "created", _("Created")
         # If an exception is raised during the main task body of an Event's
         # Routine, it will be marked `FAILED`.
-        FAILED = -1
+        FAILED = "failed", _("Failed")
         # If an Event is cancelled beforehand, or if its validity check fails
         # during processing, it will be marked `CANCELLED`.
-        CANCELLED = -2
+        CANCELLED = "cancelled", _("Cancelled")
         # If an Event fails anywhere else during processing (for instance, in
         # its Routine's `__init__` method), it will be marked `BROKEN`.
-        BROKEN = -3
+        BROKEN = "broken", _("Broken")
         # Finally, after successful processing, an Event will be marked
         # `SUCCESSFUL`.
-        SUCCESSFUL = 1
+        SUCCESSFUL = "successful", _("Successful")
 
-    status = enum.EnumField(Status, default=Status.CREATED)
+    status = models.CharField(
+        choices=Status.choices, default=Status.CREATED, max_length=10
+    )
 
     @staticmethod
     def marshal_data(data):
@@ -130,9 +128,8 @@ class Event(BaseModel):
         """
         Unmarshaled data is available for inspection on the instantiated Event.
         """
-        if not hasattr(self, '_data'):
-            self._data = [] if self.has_data \
-                else self.unmarshal_data(self.data_pickled)
+        if not hasattr(self, "_data"):
+            self._data = [] if self.has_data else self.unmarshal_data(self.data_pickled)
         return self._data
 
     @args.setter
@@ -148,6 +145,7 @@ class Event(BaseModel):
         When an Event's scheduled datetime comes up, it will be processed.
         """
         from umeboshi.runner import runner
+
         try:
             # The class is retrieved according to the trigger name.
             routine_class = runner.get_routine_class(self.trigger_name)
@@ -175,7 +173,7 @@ class Event(BaseModel):
                 self.retry_schedule(e.new_datetime)
             else:
                 self.retry_schedule()
-        except:
+        except Exception:
             self.status = self.Status.BROKEN
             raise
         finally:
@@ -193,7 +191,7 @@ class Event(BaseModel):
                 trigger_name=self.trigger_name,
                 datetime_scheduled=new_datetime,
                 status=Event.Status.CREATED,
-                args=self.args
+                args=self.args,
             )
 
     def cancel(self):
@@ -205,7 +203,7 @@ class Event(BaseModel):
         # The Event's arguments are marshaled before it's saved to the db.
         self.data_pickled = self.marshal_data(self.args)
         self.data_hash = self.hash_data(self.data_pickled)
-        super(Event, self).save(*args, **kwargs)
+        super().save(*args, **kwargs)
 
     def __unicode__(self):
-        return 'Umeboshi Event #{}'.format(self.pk)
+        return f"Umeboshi Event #{self.pk}"
