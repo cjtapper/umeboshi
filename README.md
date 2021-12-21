@@ -1,15 +1,15 @@
 # umeboshi
 
 ```
-  __    __                          __                            __        __ 
+  __    __                          __                            __        __
   /  |  /  |                        /  |                          /  |      /  |
-  $$ |  $$ | _____  ____    ______  $$ |____    ______    _______ $$ |____  $$/ 
+  $$ |  $$ | _____  ____    ______  $$ |____    ______    _______ $$ |____  $$/
   $$ |  $$ |/     \/    \  /      \ $$      \  /      \  /       |$$      \ /  |
   $$ |  $$ |$$$$$$ $$$$  |/$$$$$$  |$$$$$$$  |/$$$$$$  |/$$$$$$$/ $$$$$$$  |$$ |
   $$ |  $$ |$$ | $$ | $$ |$$    $$ |$$ |  $$ |$$ |  $$ |$$      \ $$ |  $$ |$$ |
   $$ \__$$ |$$ | $$ | $$ |$$$$$$$$/ $$ |__$$ |$$ \__$$ | $$$$$$  |$$ |  $$ |$$ |
   $$    $$/ $$ | $$ | $$ |$$       |$$    $$/ $$    $$/ /     $$/ $$ |  $$ |$$ |
-   $$$$$$/  $$/  $$/  $$/  $$$$$$$/ $$$$$$$/   $$$$$$/  $$$$$$$/  $$/   $$/ $$/ 
+   $$$$$$/  $$/  $$/  $$/  $$$$$$$/ $$$$$$$/   $$$$$$/  $$$$$$$/  $$/   $$/ $$/
 ```
 
 Umeboshi is a [Django][django] application for durable long-term scheduling of arbitrary actions.
@@ -28,7 +28,7 @@ Ah, but: you do use celery, and you love it, but you have it hooked up to a mess
 
 ## Ok, then you should try Umeboshi
 
-Umeboshi is a new, lightweight system for scheduling computation with a higher level of persistence than queue-backed solutions. Umeboshi saves your tasks to the database, and runs them later. 
+Umeboshi is a new, lightweight system for scheduling computation with a higher level of persistence than queue-backed solutions. Umeboshi saves your tasks to the database, and runs them later.
 
 # How it works, roughly
 
@@ -36,7 +36,7 @@ Umeboshi contains only two basic concepts: **Routines** and **Events**. **Routin
 
 # An example
 
-Let's say you rent jetskis. You've got a JetSki model in your Django application with a `out_for_rent` field. You're highly successful because you charge your customers a one-time \$600 fee if they hold on to your jetskis for more than 30 days. You use Umeboshi to help you enrich yourself on your watersports-loving (but forgetful) clientele. 
+Let's say you rent jetskis. You've got a JetSki model in your Django application with a `out_for_rent` field. You're highly successful because you charge your customers a one-time \$600 fee if they hold on to your jetskis for more than 30 days. You use Umeboshi to help you enrich yourself on your watersports-loving (but forgetful) clientele.
 
 ```python
 from umeboshi.routines import routine
@@ -63,7 +63,7 @@ class JetSkiLateFee(object):
         return self.jetski.out_for_rent and self.jetski.user == self.user
 
     def run(self):
-        # Finally, Umeboshi runs the Routine.  
+        # Finally, Umeboshi runs the Routine.
         self.user.charge(600, currency="USD")
 ```
 There's your Routine. Now, to schedule it:
@@ -138,4 +138,3 @@ class UsefulRoutine(object):
     behavior = TriggerBehavior.SCHEDULE_ONCE
 
     ...
-

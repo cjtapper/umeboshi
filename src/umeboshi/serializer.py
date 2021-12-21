@@ -1,9 +1,11 @@
 import pickle
 from importlib import import_module
-from django.core.exceptions import ImproperlyConfigured
-from django.conf import settings
 
-class DefaultSerializer(object):
+from django.conf import settings
+from django.core.exceptions import ImproperlyConfigured
+
+
+class DefaultSerializer:
     def dumps(self, value):
         return pickle.dumps(value)
 
@@ -16,32 +18,39 @@ def load_class(path):
     Loads class from path.
     """
 
-    mod_name, klass_name = path.rsplit('.', 1)
+    mod_name, klass_name = path.rsplit(".", 1)
 
     try:
         mod = import_module(mod_name)
     except AttributeError as e:
-        raise ImproperlyConfigured('Error importing {0}: "{1}"'.format(mod_name, e))
+        raise ImproperlyConfigured(f'Error importing {mod_name}: "{e}"')
 
     try:
         klass = getattr(mod, klass_name)
     except AttributeError:
-        raise ImproperlyConfigured('Module "{0}" does not define a "{1}" class'.format(mod_name, klass_name))
+        raise ImproperlyConfigured(
+            f'Module "{mod_name}" does not define a "{klass_name}" class'
+        )
 
     if not hasattr(klass, "loads"):
-        raise ImproperlyConfigured('Class "{0}" does not define "loads" method'.format(klass_name))
+        raise ImproperlyConfigured(
+            f'Class "{klass_name}" does not define "loads" method'
+        )
 
     if not hasattr(klass, "dumps"):
-        raise ImproperlyConfigured('Class "{0}" does not define "dumps" method'.format(klass_name))
+        raise ImproperlyConfigured(
+            f'Class "{klass_name}" does not define "dumps" method'
+        )
 
     return klass
 
 
 def load_serializer(settings):
 
-    if hasattr(settings, 'UMEBOSHI_SERIALIZER'):
+    if hasattr(settings, "UMEBOSHI_SERIALIZER"):
         return load_class(settings.UMEBOSHI_SERIALIZER)()
     else:
         return DefaultSerializer()
+
 
 serializer = load_serializer(settings)

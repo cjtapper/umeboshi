@@ -1,12 +1,11 @@
-# -*- coding: utf-8 -*-
 import logging
 
 from django.utils import timezone
+
 from umeboshi.exceptions import DuplicateEvent
 from umeboshi.triggers import TriggerBehavior
 
-
-logger = logging.getLogger('django-umeboshi')
+logger = logging.getLogger("django-umeboshi")
 
 
 @classmethod
@@ -15,6 +14,7 @@ def schedule(cls, datetime_scheduled=None, args=None, silent=True, **kwargs):
     Schedule a Routine class to be run in the future.
     """
     from umeboshi.models import Event
+
     if args is None:
         args = []
     marshaled_data = Event.marshal_data(args)
@@ -27,32 +27,45 @@ def schedule(cls, datetime_scheduled=None, args=None, silent=True, **kwargs):
     # used. The developer can give multiple Routines the same task name
     # (and different trigger names, of course), checking for the
     # existence of any of a group of Routines.
-    group_check = {"task_group": cls.task_group} if cls.task_group is not None \
+    group_check = (
+        {"task_group": cls.task_group}
+        if cls.task_group is not None
         else {"trigger_name": cls.trigger_name}
-    behavior = cls.behavior if TriggerBehavior.is_valid_value(cls.behavior) else TriggerBehavior.DEFAULT
+    )
+    behavior = (
+        cls.behavior if cls.behavior in TriggerBehavior else TriggerBehavior.DEFAULT
+    )
 
     try:
-        if behavior == TriggerBehavior.RUN_AND_SCHEDULE_ONCE \
-            and Event.objects.filter(data_hash=hashed_data,
-                                     status__in=(Event.Status.SUCCESSFUL, Event.Status.CREATED),
-                                     **group_check).exists():
+        if (
+            behavior == TriggerBehavior.RUN_AND_SCHEDULE_ONCE
+            and Event.objects.filter(
+                data_hash=hashed_data,
+                status__in=(Event.Status.SUCCESSFUL, Event.Status.CREATED),
+                **group_check,
+            ).exists()
+        ):
             raise DuplicateEvent()
 
-        if behavior == TriggerBehavior.RUN_ONCE \
-            and Event.objects.filter(data_hash=hashed_data,
-                                     status=Event.Status.SUCCESSFUL,
-                                     **group_check).exists():
+        if (
+            behavior == TriggerBehavior.RUN_ONCE
+            and Event.objects.filter(
+                data_hash=hashed_data, status=Event.Status.SUCCESSFUL, **group_check
+            ).exists()
+        ):
             raise DuplicateEvent()
 
-        if behavior == TriggerBehavior.SCHEDULE_ONCE \
-            and Event.objects.filter(data_hash=hashed_data,
-                                     datetime_processed__isnull=True,
-                                     **group_check).exists():
+        if (
+            behavior == TriggerBehavior.SCHEDULE_ONCE
+            and Event.objects.filter(
+                data_hash=hashed_data, datetime_processed__isnull=True, **group_check
+            ).exists()
+        ):
             raise DuplicateEvent()
         if behavior == TriggerBehavior.LAST_ONLY:
-            waiting_events = Event.objects.filter(data_hash=hashed_data,
-                                                  datetime_processed__isnull=True,
-                                                  **group_check)
+            waiting_events = Event.objects.filter(
+                data_hash=hashed_data, datetime_processed__isnull=True, **group_check
+            )
             for waiting_event in waiting_events:
                 waiting_event.cancel()
 
@@ -65,11 +78,13 @@ def schedule(cls, datetime_scheduled=None, args=None, silent=True, **kwargs):
     if datetime_scheduled is None:
         datetime_scheduled = timezone.now()
 
-    event = Event.objects.create(trigger_name=cls.trigger_name,
-                                 task_group=cls.task_group,
-                                 datetime_scheduled=datetime_scheduled,
-                                 status=Event.Status.CREATED,
-                                 args=args)
+    event = Event.objects.create(
+        trigger_name=cls.trigger_name,
+        task_group=cls.task_group,
+        datetime_scheduled=datetime_scheduled,
+        status=Event.Status.CREATED,
+        args=args,
+    )
     return event
 
 
@@ -81,9 +96,9 @@ def routine(trigger_name=None, task_group=None, behavior=None):
     from umeboshi.runner import runner
 
     def wrapper(cls):
-        cls.trigger_name = getattr(cls, 'trigger_name', None) or trigger_name
-        cls.task_group = getattr(cls, 'task_group', None) or task_group
-        cls.behavior = getattr(cls, 'behavior', None) or behavior
+        cls.trigger_name = getattr(cls, "trigger_name", None) or trigger_name
+        cls.task_group = getattr(cls, "task_group", None) or task_group
+        cls.behavior = getattr(cls, "behavior", None) or behavior
         runner.register(cls)
 
         cls.schedule = schedule

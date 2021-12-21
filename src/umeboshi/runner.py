@@ -1,9 +1,15 @@
 import logging
+
 from django.utils.module_loading import import_string
-from umeboshi.exceptions import UnknownTriggerException, RoutineRunException, NoRoutineTriggerException
+
+from umeboshi.exceptions import (
+    NoRoutineTriggerException,
+    RoutineRunException,
+    UnknownTriggerException,
+)
 
 
-class Runner(object):
+class Runner:
     """
     The Umeboshi Runner is responsible for registering and retrieving Routines.
     It provides a wrapper around Routine API to establish sane defaults.
@@ -17,10 +23,15 @@ class Runner(object):
             raise NoRoutineTriggerException
 
         if cls.trigger_name in self.registry:
-            self.logger.warning('Duplicate definition for trigger {} at {}.{} and {}.{}',
-                                cls.trigger_name, cls.__module__, self.registry[cls.trigger_name],
-                                cls.__module__, cls.__name__)
-        self.registry[cls.trigger_name] = "{}.{}".format(cls.__module__, cls.__name__)
+            self.logger.warning(
+                "Duplicate definition for trigger {} at {}.{} and {}.{}",
+                cls.trigger_name,
+                cls.__module__,
+                self.registry[cls.trigger_name],
+                cls.__module__,
+                cls.__name__,
+            )
+        self.registry[cls.trigger_name] = f"{cls.__module__}.{cls.__name__}"
 
     def get_routine_class(self, trigger_name):
         if trigger_name in self.registry:
@@ -30,12 +41,12 @@ class Runner(object):
         raise UnknownTriggerException()
 
     def check_validity(self, routine):
-        if not hasattr(routine, 'check_validity'):
+        if not hasattr(routine, "check_validity"):
             return True
         return routine.check_validity()
 
     def run(self, routine):
-        if not hasattr(routine, 'run'):
+        if not hasattr(routine, "run"):
             raise NotImplementedError
         try:
             return routine.run()
@@ -45,6 +56,7 @@ class Runner(object):
 
     @property
     def logger(self):
-        return logging.getLogger('django-umeboshi.runner')
+        return logging.getLogger("django-umeboshi.runner")
+
 
 runner = Runner()

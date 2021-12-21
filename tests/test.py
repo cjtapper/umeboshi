@@ -1,20 +1,19 @@
 import logging
+from unittest import mock
 
-import mock
+from django.core.exceptions import ImproperlyConfigured
 from django.test import TestCase
 from django.utils import timezone
-from django.core.exceptions import ImproperlyConfigured
-from django.conf import settings
-from freezegun import freeze_time
 from django.utils.timezone import now, timedelta
+from freezegun import freeze_time
 
 from umeboshi import exceptions
 from umeboshi.models import Event, TriggerBehavior
 from umeboshi.routines import routine
 from umeboshi.serializer import load_class, load_serializer
 
-class BaseRoutine(object):
 
+class BaseRoutine:
     def __init__(self, args=None):
         self.data = args
 
@@ -24,14 +23,16 @@ class BaseRoutine(object):
     def run(self):
         return True
 
-TRIGGER_SIMPLE = 'simple-model'
+
+TRIGGER_SIMPLE = "simple-model"
 
 
 @routine()
 class SimpleRoutine(BaseRoutine):
     trigger_name = TRIGGER_SIMPLE
 
-TRIGGER_RUN_ONCE = 'send_once'
+
+TRIGGER_RUN_ONCE = "send_once"
 
 
 @routine()
@@ -39,7 +40,8 @@ class SendOnceRoutine(BaseRoutine):
     trigger_name = TRIGGER_RUN_ONCE
     behavior = TriggerBehavior.RUN_ONCE
 
-SCHEDULE_ONCE = 'trigger_once'
+
+SCHEDULE_ONCE = "trigger_once"
 
 
 @routine()
@@ -47,7 +49,8 @@ class TriggerOnceRoutine(BaseRoutine):
     trigger_name = SCHEDULE_ONCE
     behavior = TriggerBehavior.SCHEDULE_ONCE
 
-RUN_AND_SCHEDULE_ONCE = 'run_and_schedule_once'
+
+RUN_AND_SCHEDULE_ONCE = "run_and_schedule_once"
 
 
 @routine()
@@ -55,7 +58,8 @@ class RunAndScheduleOnceRoutine(BaseRoutine):
     trigger_name = RUN_AND_SCHEDULE_ONCE
     behavior = TriggerBehavior.RUN_AND_SCHEDULE_ONCE
 
-TRIGGER_DELETE_AFTER_PROCESSING = 'trigger_delete_after'
+
+TRIGGER_DELETE_AFTER_PROCESSING = "trigger_delete_after"
 
 
 @routine()
@@ -65,18 +69,17 @@ class TriggerDeleteAfterRoutine(BaseRoutine):
 
 
 @routine(trigger_name="base-trigger")
-class BaseRoutine(object):
+class BaseRoutine:
     pass
 
 
 class ModelTests(TestCase):
-
     def setUp(self):
         logging.disable(logging.WARNING)
 
     def test_trigger_event(self):
 
-        welcome_path = "{}.{}".format(SimpleRoutine.__module__, SimpleRoutine.__name__)
+        welcome_path = f"{SimpleRoutine.__module__}.{SimpleRoutine.__name__}"
         trigger_settings = {TRIGGER_SIMPLE: welcome_path}
         with self.settings(UMEBOSHI_TRIGGERS=trigger_settings):
             event = SimpleRoutine.schedule()
@@ -87,10 +90,10 @@ class ModelTests(TestCase):
 
     def test_trigger_event_with_data(self):
 
-        welcome_path = "{}.{}".format(SimpleRoutine.__module__, SimpleRoutine.__name__)
+        welcome_path = f"{SimpleRoutine.__module__}.{SimpleRoutine.__name__}"
         trigger_settings = {TRIGGER_SIMPLE: welcome_path}
         with self.settings(UMEBOSHI_TRIGGERS=trigger_settings):
-            data = ['World', 5, timezone.now().date()]
+            data = ["World", 5, timezone.now().date()]
             event = SimpleRoutine.schedule(args=data)
 
             self.assertEqual(event.trigger_name, TRIGGER_SIMPLE)
@@ -103,10 +106,12 @@ class ModelTests(TestCase):
 
     def test_trigger_event_run_once(self):
 
-        welcome_path = "{}.{}".format(SendOnceRoutine.__module__, SendOnceRoutine.__name__)
+        welcome_path = "{}.{}".format(
+            SendOnceRoutine.__module__, SendOnceRoutine.__name__
+        )
         trigger_settings = {TRIGGER_RUN_ONCE: welcome_path}
         with self.settings(UMEBOSHI_TRIGGERS=trigger_settings):
-            data = ['unique_data']
+            data = ["unique_data"]
             # First event
             event = SendOnceRoutine.schedule(args=data)
             self.assertEqual(event.trigger_name, TRIGGER_RUN_ONCE)
@@ -118,10 +123,12 @@ class ModelTests(TestCase):
 
     def test_trigger_event_schedule_once(self):
 
-        welcome_path = "{}.{}".format(TriggerOnceRoutine.__module__, TriggerOnceRoutine.__name__)
+        welcome_path = "{}.{}".format(
+            TriggerOnceRoutine.__module__, TriggerOnceRoutine.__name__
+        )
         trigger_settings = {SCHEDULE_ONCE: welcome_path}
         with self.settings(UMEBOSHI_TRIGGERS=trigger_settings):
-            data = ['unique_data']
+            data = ["unique_data"]
             # First event
             event = TriggerOnceRoutine.schedule(args=data)
             self.assertEqual(event.trigger_name, SCHEDULE_ONCE)
@@ -141,10 +148,12 @@ class ModelTests(TestCase):
 
     def test_run_and_schedule_event_schedule_once(self):
 
-        welcome_path = "{}.{}".format(RunAndScheduleOnceRoutine.__module__, RunAndScheduleOnceRoutine.__name__)
+        welcome_path = "{}.{}".format(
+            RunAndScheduleOnceRoutine.__module__, RunAndScheduleOnceRoutine.__name__
+        )
         trigger_settings = {RUN_AND_SCHEDULE_ONCE: welcome_path}
         with self.settings(UMEBOSHI_TRIGGERS=trigger_settings):
-            data = ['unique_data']
+            data = ["unique_data"]
             # First event
             event = RunAndScheduleOnceRoutine.schedule(args=data)
             self.assertEqual(event.trigger_name, RUN_AND_SCHEDULE_ONCE)
@@ -163,10 +172,12 @@ class ModelTests(TestCase):
 
     def test_trigger_event_delete_after_processing(self):
 
-        welcome_path = "{}.{}".format(TriggerDeleteAfterRoutine.__module__, TriggerDeleteAfterRoutine.__name__)
+        welcome_path = "{}.{}".format(
+            TriggerDeleteAfterRoutine.__module__, TriggerDeleteAfterRoutine.__name__
+        )
         trigger_settings = {TRIGGER_DELETE_AFTER_PROCESSING: welcome_path}
         with self.settings(UMEBOSHI_TRIGGERS=trigger_settings):
-            data = ['unique_data']
+            data = ["unique_data"]
             # First event
             event = TriggerDeleteAfterRoutine.schedule(args=data)
             self.assertEqual(event.trigger_name, TRIGGER_DELETE_AFTER_PROCESSING)
@@ -185,7 +196,7 @@ class ModelTests(TestCase):
             self.assertEqual(second_event.status, Event.Status.CREATED)
 
     def test_base_trigger(self):
-        self.assertEquals(BaseRoutine.trigger_name, "base-trigger")
+        self.assertEqual(BaseRoutine.trigger_name, "base-trigger")
         self.assertIsNone(BaseRoutine.task_group)
         self.assertIsNone(BaseRoutine.behavior)
 
@@ -197,7 +208,7 @@ class ModelTests(TestCase):
         event.process()
 
     @freeze_time("2012-01-14 13:13:13")
-    @mock.patch('umeboshi.models.Event.objects.create')
+    @mock.patch("umeboshi.models.Event.objects.create")
     def test_event_retry_schedule_function_default_args(self, mock_event_create):
         event = Event(status=Event.Status.FAILED)
 
@@ -211,48 +222,50 @@ class ModelTests(TestCase):
             datetime_scheduled=reschedule_time,
             status=Event.Status.CREATED,
             args=mock.ANY,
-
         )
 
 
-class EmptySerializer(object):
+class EmptySerializer:
     """
     Empty serializer with no loads and dumps method
     """
+
     pass
 
-class TestSerializer(object):
+
+class TestSerializer:
     def dumps(self, value):
         pass
 
     def loads(self, value):
         pass
+
+
 class SerializerTests(TestCase):
-    
     def test_load_class(self):
-        path = 'umeboshi.serializer.DefaultSerializer'
+        path = "umeboshi.serializer.DefaultSerializer"
         klass = load_class(path)
         self.assertIsNotNone(klass)
-        
+
     def test_load_class_exception_invalid_file(self):
-        path = 'nonexist.serializer.DefaultSerializer'
+        path = "nonexist.serializer.DefaultSerializer"
         self.assertRaises(ImportError, load_class, path)
 
     def test_load_class_exception_invalid_class(self):
-        path = 'umeboshi.serializer.nonexist'
+        path = "umeboshi.serializer.nonexist"
         self.assertRaises(ImproperlyConfigured, load_class, path)
 
     def test_load_class_exception_missing_method(self):
-        path = 'tests.test.EmptySerializer'
+        path = "tests.test.EmptySerializer"
         self.assertRaises(ImproperlyConfigured, load_class, path)
 
     def test_load_serializer_default(self):
         serializer = load_serializer({})
         self.assertEqual(serializer.__class__.__name__, "DefaultSerializer")
 
-    def test_load_serializer_default(self):
-        class TestSetting(object):
-            UMEBOSHI_SERIALIZER = 'tests.test.TestSerializer'
+    def test_load_serializer_not_default(self):
+        class TestSetting:
+            UMEBOSHI_SERIALIZER = "tests.test.TestSerializer"
 
         test_setting = TestSetting()
         serializer = load_serializer(test_setting)
